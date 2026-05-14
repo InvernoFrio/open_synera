@@ -76,6 +76,35 @@ namespace Engine {
         return m_Projection * m_View;
     }
 
+    glm::vec4 Camera::WorldToClip(
+        const glm::vec3& worldPosition
+    ) const {
+        return GetViewProjection() *
+            glm::vec4{
+                worldPosition,
+                1.0f
+        };
+    }
+
+    glm::vec3 Camera::WorldToNdc(
+        const glm::vec3& worldPosition
+    ) const {
+        glm::vec4 clip =
+            WorldToClip(worldPosition);
+
+        if (clip.w == 0.0f) {
+            return glm::vec3{ 0.0f };
+        }
+
+        clip /= clip.w;
+
+        return glm::vec3{
+            clip.x,
+            clip.y,
+            clip.z
+        };
+    }
+
     glm::vec3 Camera::GetPosition() const {
         return m_Position;
     }

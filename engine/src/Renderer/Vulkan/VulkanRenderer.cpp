@@ -335,6 +335,12 @@ namespace Engine {
             m_OffscreenTarget.GetColorImageView(),
             m_OffscreenTarget.GetColorSampler()
         );
+
+        m_OverlayPipeline.Init(
+            m_Device.GetDevice(),
+            m_Swapchain.GetExtent(),
+            m_PresentRenderPass.Get()
+        );
     }
 
     void VulkanRenderer::CleanupSwapchainResources() {
@@ -345,6 +351,7 @@ namespace Engine {
             vkDeviceWaitIdle(device);
         }
 
+        m_OverlayPipeline.Shutdown();
         m_FullscreenPass.Shutdown();
 
         m_PresentFramebuffer.Shutdown();
@@ -602,8 +609,13 @@ namespace Engine {
             commandBuffer,
             &beginInfo
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to begin command buffer");
+            throw std::runtime_error(
+                "Failed to begin command buffer"
+            );
         }
+
+        m_CurrentSceneOverlays =
+            scene.GetOverlayRenderItems();
 
         RecordScenePass(
             commandBuffer,
@@ -615,10 +627,14 @@ namespace Engine {
             imageIndex
         );
 
+        m_CurrentSceneOverlays.clear();
+
         if (vkEndCommandBuffer(
             commandBuffer
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to record command buffer");
+            throw std::runtime_error(
+                "Failed to record command buffer"
+            );
         }
     }
 
@@ -864,16 +880,21 @@ namespace Engine {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType =
             VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
         renderPassInfo.renderPass =
             m_PresentRenderPass.Get();
+
         renderPassInfo.framebuffer =
             m_PresentFramebuffer.GetFramebuffers()[imageIndex];
+
         renderPassInfo.renderArea.offset = {
             0,
             0
         };
+
         renderPassInfo.renderArea.extent =
             m_Swapchain.GetExtent();
+
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
@@ -889,6 +910,65 @@ namespace Engine {
             m_Swapchain.GetExtent(),
             m_PixelConfig
         );
+
+        /*
+            原生分辨率 Overlay。
+            放在 fullscreen resolve 后绘制，因此不会被像素化。
+        */
+        vkCmdBindPipeline(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_OverlayPipeline.GetPipeline()
+        );
+
+        VkExtent2D extent =
+            m_Swapchain.GetExtent();
+
+        for (const OverlayRenderItem& item : m_CurrentSceneOverlays) {
+            OverlayPushConstants push{};
+
+            push.rect =
+                glm::vec4{
+                    item.position.x,
+                    item.position.y,
+                    item.size.x,
+                    item.size.y
+            };
+
+            push.color =
+                item.color;
+
+            push.params =
+                glm::vec4{
+                    static_cast<float>(
+                        static_cast<uint32_t>(item.shapeType)
+                    ),
+                    item.rotationRadians,
+                    static_cast<float>(extent.width),
+                    static_cast<float>(extent.height)
+            };
+
+            push.extra =
+                item.params;
+
+            vkCmdPushConstants(
+                commandBuffer,
+                m_OverlayPipeline.GetPipelineLayout(),
+                VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(OverlayPushConstants),
+                &push
+            );
+
+            vkCmdDraw(
+                commandBuffer,
+                6,
+                1,
+                0,
+                0
+            );
+        }
 
         vkCmdEndRenderPass(commandBuffer);
     }

@@ -4,6 +4,7 @@
 #include "BoardVisualLayer.h"
 #include "UnitSystem.h"
 #include "EffectVisualLayer.h"
+#include "DamageNumberLayer.h"
 
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Camera.h"
@@ -52,7 +53,11 @@ private:
 
     UnitSystem m_UnitSystem;
     EffectVisualLayer m_EffectVisualLayer;
+    DamageNumberLayer m_DamageNumberLayer;
 
     Engine::Camera m_Camera;
     Engine::Scene m_Scene;
+
+    uint32_t m_LastFramebufferWidth = 0;
+    uint32_t m_LastFramebufferHeight = 0;
 };

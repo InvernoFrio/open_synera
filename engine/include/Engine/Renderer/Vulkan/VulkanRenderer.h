@@ -6,6 +6,7 @@
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/MaterialLibrary.h"
 #include "Engine/Renderer/PixelRenderConfig.h"
+#include "Engine/Renderer/OverlayRenderItem.h"
 #include "Engine/Scene/Scene.h"
 
 #include "Engine/Renderer/Vulkan/VulkanContext.h"
@@ -21,6 +22,7 @@
 #include "Engine/Renderer/Vulkan/VulkanOffscreenRenderTarget.h"
 #include "Engine/Renderer/Vulkan/VulkanFullscreenPass.h"
 #include "Engine/Renderer/Vulkan/VulkanSpritePipeline.h"
+#include "Engine/Renderer/Vulkan/VulkanOverlayPipeline.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
@@ -70,6 +72,13 @@ namespace Engine {
         0.0f,
         0.0f
         };
+    };
+
+    struct OverlayPushConstants {
+        glm::vec4 rect{ 0.0f };
+        glm::vec4 color{ 1.0f };
+        glm::vec4 params{ 0.0f };
+        glm::vec4 extra{ 0.0f };
     };
 
     class VulkanRenderer {
@@ -146,6 +155,7 @@ namespace Engine {
         VulkanPipeline m_MeshPipeline;
         VulkanPipeline m_OutlinePipeline;
         VulkanSpritePipeline m_SpritePipeline;
+        VulkanOverlayPipeline m_OverlayPipeline;
 
         VulkanFullscreenPass m_FullscreenPass;
 
@@ -160,6 +170,8 @@ namespace Engine {
         std::vector<VkSemaphore> m_ImageAvailableSemaphores;
         std::vector<VkSemaphore> m_RenderFinishedSemaphores;
         std::vector<VkFence> m_InFlightFences;
+
+        std::vector<OverlayRenderItem> m_CurrentSceneOverlays;
 
         uint32_t m_CurrentFrame = 0;
 

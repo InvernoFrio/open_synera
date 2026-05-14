@@ -75,6 +75,12 @@ void AutoChessGame::Update(
     uint32_t framebufferWidth,
     uint32_t framebufferHeight
 ) {
+    m_LastFramebufferWidth =
+        framebufferWidth;
+
+    m_LastFramebufferHeight =
+        framebufferHeight;
+
     HandleMouseInput(
         input,
         framebufferWidth,
@@ -84,6 +90,7 @@ void AutoChessGame::Update(
     m_BoardSystem.Update();
     m_UnitSystem.Update(dt);
     m_EffectVisualLayer.Update(dt);
+    m_DamageNumberLayer.Update(dt);
 
     BuildScene();
 }
@@ -195,6 +202,12 @@ void AutoChessGame::HandleMouseInput(
             effectPosition
         );
 
+        m_DamageNumberLayer.ShowDamage(
+            120,
+            effectPosition,
+            DamageNumberType::Physical
+        );
+
         return;
     }
 
@@ -212,6 +225,12 @@ void AutoChessGame::HandleMouseInput(
         m_EffectVisualLayer.SpawnEffect(
             EffectType::MagicSpark,
             effectPosition
+        );
+
+        m_DamageNumberLayer.ShowDamage(
+            80,
+            effectPosition,
+            DamageNumberType::Magic
         );
     }
 }
@@ -310,6 +329,14 @@ void AutoChessGame::BuildScene() {
 
     m_EffectVisualLayer.SubmitRenderItems(
         m_Scene
+    );
+
+    m_DamageNumberLayer.SubmitRenderItems(
+        m_Scene,
+        m_Camera,
+        m_PixelConfig,
+        m_LastFramebufferWidth,
+        m_LastFramebufferHeight
     );
 }
 

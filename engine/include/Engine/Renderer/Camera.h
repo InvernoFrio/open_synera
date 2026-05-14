@@ -25,6 +25,14 @@ namespace Engine {
         glm::mat4 GetProjection() const;
         glm::mat4 GetViewProjection() const;
 
+        glm::vec4 WorldToClip(
+            const glm::vec3& worldPosition
+        ) const;
+
+        glm::vec3 WorldToNdc(
+            const glm::vec3& worldPosition
+        ) const;
+
         glm::vec3 GetPosition() const;
         glm::vec3 GetRight() const;
         glm::vec3 GetUp() const;
