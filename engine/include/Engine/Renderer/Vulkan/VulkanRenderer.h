@@ -20,6 +20,7 @@
 #include "Engine/Renderer/Vulkan/VulkanImage.h"
 #include "Engine/Renderer/Vulkan/VulkanOffscreenRenderTarget.h"
 #include "Engine/Renderer/Vulkan/VulkanFullscreenPass.h"
+#include "Engine/Renderer/Vulkan/VulkanSpritePipeline.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
@@ -30,6 +31,26 @@ namespace Engine {
 
     struct CameraUBO {
         glm::mat4 viewProjection{ 1.0f };
+
+        glm::vec4 cameraRight{
+            1.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        };
+
+        glm::vec4 cameraUp{
+            0.0f,
+            1.0f,
+            0.0f,
+            0.0f
+        };
+    };
+
+    struct SpritePushConstants {
+        glm::vec4 positionSize{ 0.0f };
+        glm::vec4 color{ 1.0f };
+        glm::vec4 params{ 1.0f };
     };
 
     struct MeshPushConstants {
@@ -124,6 +145,7 @@ namespace Engine {
 
         VulkanPipeline m_MeshPipeline;
         VulkanPipeline m_OutlinePipeline;
+        VulkanSpritePipeline m_SpritePipeline;
 
         VulkanFullscreenPass m_FullscreenPass;
 

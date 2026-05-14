@@ -26,6 +26,8 @@ namespace Engine {
         glm::mat4 GetViewProjection() const;
 
         glm::vec3 GetPosition() const;
+        glm::vec3 GetRight() const;
+        glm::vec3 GetUp() const;
 
     private:
         void RecalculateProjection();
@@ -35,6 +37,9 @@ namespace Engine {
         glm::mat4 m_Projection{ 1.0f };
 
         glm::vec3 m_Position{ 0.0f };
+
+        glm::vec3 m_Right{ 1.0f, 0.0f, 0.0f };
+        glm::vec3 m_Up{ 0.0f, 1.0f, 0.0f };
 
         float m_FovRadians = 0.0f;
         float m_Aspect = 1.0f;

@@ -83,6 +83,7 @@ void AutoChessGame::Update(
 
     m_BoardSystem.Update();
     m_UnitSystem.Update(dt);
+    m_EffectVisualLayer.Update(dt);
 
     BuildScene();
 }
@@ -181,11 +182,37 @@ void AutoChessGame::HandleMouseInput(
             unitAtCell.value()
         );
 
+        glm::vec3 effectPosition =
+            m_BoardSystem.CellToWorld(
+                cell.x,
+                cell.y
+            );
+
+        effectPosition.y = 1.2f;
+
+        m_EffectVisualLayer.SpawnEffect(
+            EffectType::HitSpark,
+            effectPosition
+        );
+
         return;
     }
 
     if (m_UnitSystem.HasSelection()) {
         m_UnitSystem.MoveSelectedUnitToCell(cell);
+
+        glm::vec3 effectPosition =
+            m_BoardSystem.CellToWorld(
+                cell.x,
+                cell.y
+            );
+
+        effectPosition.y = 0.35f;
+
+        m_EffectVisualLayer.SpawnEffect(
+            EffectType::MagicSpark,
+            effectPosition
+        );
     }
 }
 
@@ -278,6 +305,10 @@ void AutoChessGame::BuildScene() {
     );
 
     m_UnitSystem.SubmitRenderItems(
+        m_Scene
+    );
+
+    m_EffectVisualLayer.SubmitRenderItems(
         m_Scene
     );
 }

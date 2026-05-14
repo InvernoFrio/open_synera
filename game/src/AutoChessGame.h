@@ -3,6 +3,7 @@
 #include "BoardSystem.h"
 #include "BoardVisualLayer.h"
 #include "UnitSystem.h"
+#include "EffectVisualLayer.h"
 
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Camera.h"
@@ -50,6 +51,7 @@ private:
     BoardVisualLayer m_BoardVisualLayer;
 
     UnitSystem m_UnitSystem;
+    EffectVisualLayer m_EffectVisualLayer;
 
     Engine::Camera m_Camera;
     Engine::Scene m_Scene;

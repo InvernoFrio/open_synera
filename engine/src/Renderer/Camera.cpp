@@ -40,6 +40,28 @@ namespace Engine {
             center,
             up
         );
+
+        /*
+            GLM 的 view 矩阵里：
+            第 0 列近似 camera right
+            第 1 列近似 camera up
+            这里直接取出来给 billboard 用。
+        */
+        m_Right = glm::normalize(
+            glm::vec3{
+                m_View[0][0],
+                m_View[1][0],
+                m_View[2][0]
+            }
+        );
+
+        m_Up = glm::normalize(
+            glm::vec3{
+                m_View[0][1],
+                m_View[1][1],
+                m_View[2][1]
+            }
+        );
     }
 
     glm::mat4 Camera::GetView() const {
@@ -58,6 +80,14 @@ namespace Engine {
         return m_Position;
     }
 
+    glm::vec3 Camera::GetRight() const {
+        return m_Right;
+    }
+
+    glm::vec3 Camera::GetUp() const {
+        return m_Up;
+    }
+
     void Camera::RecalculateProjection() {
         m_Projection = glm::perspective(
             m_FovRadians,
@@ -66,7 +96,6 @@ namespace Engine {
             m_FarPlane
         );
 
-        // Vulkan NDC 与 OpenGL 的 Y 方向不同
         m_Projection[1][1] *= -1.0f;
     }
 

@@ -283,9 +283,18 @@ namespace Engine {
             "assets/shaders/mesh.frag.spv",
             outlineConfig
         );
+
+        m_SpritePipeline.Init(
+            m_Device.GetDevice(),
+            m_OffscreenTarget.GetExtent(),
+            m_OffscreenTarget.GetRenderPass(),
+            m_Descriptor.GetLayout()
+        );
     }
 
     void VulkanRenderer::CleanupPixelResources() {
+        m_SpritePipeline.Shutdown();
+
         m_MeshPipeline.Shutdown();
         m_OutlinePipeline.Shutdown();
 
@@ -556,6 +565,24 @@ namespace Engine {
         ubo.viewProjection =
             camera.GetViewProjection();
 
+        glm::vec3 right =
+            camera.GetRight();
+
+        glm::vec3 up =
+            camera.GetUp();
+
+        ubo.cameraRight =
+            glm::vec4{
+                right,
+                0.0f
+        };
+
+        ubo.cameraUp =
+            glm::vec4{
+                up,
+                0.0f
+        };
+
         m_CameraBuffer.UploadData(
             &ubo,
             sizeof(CameraUBO)
@@ -760,6 +787,65 @@ namespace Engine {
             drawItem(
                 item,
                 false
+            );
+        }
+
+        /*
+            Pass 3：Sprite / Billboard 特效
+        */
+        vkCmdBindPipeline(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_SpritePipeline.GetPipeline()
+        );
+
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_SpritePipeline.GetPipelineLayout(),
+            0,
+            1,
+            &descriptorSet,
+            0,
+            nullptr
+        );
+
+        for (const SpriteRenderItem& sprite : scene.GetSpriteRenderItems()) {
+            SpritePushConstants push{};
+
+            push.positionSize =
+                glm::vec4{
+                    sprite.worldPosition,
+                    0.0f
+            };
+
+            push.color =
+                sprite.color;
+
+            push.params =
+                glm::vec4{
+                    sprite.size.x,
+                    sprite.size.y,
+                    sprite.rotationRadians,
+                    sprite.spriteType
+            };
+
+            vkCmdPushConstants(
+                commandBuffer,
+                m_SpritePipeline.GetPipelineLayout(),
+                VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(SpritePushConstants),
+                &push
+            );
+
+            vkCmdDraw(
+                commandBuffer,
+                6,
+                1,
+                0,
+                0
             );
         }
 
