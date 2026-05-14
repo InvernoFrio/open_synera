@@ -83,7 +83,19 @@ void UnitSystem::SubmitRenderItems(
         item.materialId = unit.selected
             ? Engine::MaterialId::UnitSelected
             : unit.materialId;
+
         item.model = model;
+
+        item.flags =
+            static_cast<uint32_t>(
+                Engine::RenderFlags::Outline
+                );
+
+        item.outlineMaterialId =
+            Engine::MaterialId::OutlineDark;
+
+        item.outlineWidth =
+            unit.selected ? 0.055f : 0.035f;
 
         scene.Submit(item);
     }

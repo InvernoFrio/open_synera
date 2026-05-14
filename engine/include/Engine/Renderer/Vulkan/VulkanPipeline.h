@@ -4,6 +4,15 @@
 
 namespace Engine {
 
+    struct VulkanPipelineConfig {
+        VkCullModeFlags cullMode = VK_CULL_MODE_NONE;
+
+        bool depthTestEnable = true;
+        bool depthWriteEnable = true;
+
+        VkCompareOp depthCompareOp = VK_COMPARE_OP_LESS;
+    };
+
     class VulkanPipeline {
     public:
         void Init(
@@ -12,7 +21,8 @@ namespace Engine {
             VkRenderPass renderPass,
             VkDescriptorSetLayout descriptorSetLayout,
             const char* vertexShaderPath,
-            const char* fragmentShaderPath
+            const char* fragmentShaderPath,
+            const VulkanPipelineConfig& config = VulkanPipelineConfig{}
         );
 
         void Shutdown();

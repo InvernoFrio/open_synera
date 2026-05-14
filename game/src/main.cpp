@@ -24,8 +24,7 @@ int main() {
         AutoChessGame game;
 
         game.Init(
-            window.GetFramebufferWidth(),
-            window.GetFramebufferHeight()
+            renderer.GetPixelRenderConfig()
         );
 
         auto lastTime =

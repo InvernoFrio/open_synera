@@ -19,6 +19,8 @@ namespace Engine {
         UnitGreen,
         UnitSelected,
 
+        OutlineDark,
+
         DebugWhite
     };
 
@@ -28,6 +30,10 @@ namespace Engine {
         std::string name;
 
         glm::vec4 baseColor{ 1.0f };
+
+        float shadeSteps = 3.0f;
+        float shadowStrength = 0.55f;
+        float ambient = 0.35f;
 
         float metallic = 0.0f;
         float roughness = 0.5f;

@@ -35,6 +35,20 @@ namespace Engine {
     struct MeshPushConstants {
         glm::mat4 model{ 1.0f };
         glm::vec4 color{ 1.0f };
+
+        glm::vec4 shadingParams{
+        3.0f,   // x = shadeSteps
+        0.55f,  // y = shadowStrength
+        0.35f,  // z = ambient
+        0.0f    // w = unused
+        };
+
+        glm::vec4 outlineParams{
+        0.0f,   // x = renderMode, 0 normal, 1 outline
+        0.0f,   // y = outlineWidth
+        0.0f,
+        0.0f
+        };
     };
 
     class VulkanRenderer {
@@ -49,6 +63,8 @@ namespace Engine {
         );
 
         VkExtent2D GetSwapchainExtent() const;
+
+        const PixelRenderConfig& GetPixelRenderConfig() const;
 
     private:
         static constexpr int MaxFramesInFlight = 2;
@@ -107,6 +123,8 @@ namespace Engine {
         VulkanDescriptor m_Descriptor;
 
         VulkanPipeline m_MeshPipeline;
+        VulkanPipeline m_OutlinePipeline;
+
         VulkanFullscreenPass m_FullscreenPass;
 
         VulkanMesh m_BoardTileMesh;

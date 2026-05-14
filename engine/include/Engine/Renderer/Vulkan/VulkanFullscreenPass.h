@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Renderer/PixelRenderConfig.h"
+
 #include <vulkan/vulkan.h>
 
 namespace Engine {
@@ -17,12 +19,16 @@ namespace Engine {
         void Shutdown();
 
         void Record(
-            VkCommandBuffer commandBuffer
+            VkCommandBuffer commandBuffer,
+            VkExtent2D sourceExtent,
+            VkExtent2D targetExtent,
+            const PixelRenderConfig& config
         );
 
     private:
         void CreateDescriptorSetLayout();
         void CreateDescriptorPool();
+
         void CreateDescriptorSet(
             VkImageView sourceImageView,
             VkSampler sourceSampler

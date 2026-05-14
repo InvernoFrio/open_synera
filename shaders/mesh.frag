@@ -3,42 +3,68 @@
 layout(location = 0) in vec4 fragColor;
 layout(location = 1) in vec3 fragWorldNormal;
 layout(location = 2) in vec3 fragWorldPosition;
+layout(location = 3) in vec4 fragShadingParams;
+layout(location = 4) in vec4 fragOutlineParams;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
+    float renderMode =
+        fragOutlineParams.x;
+
+    /*
+        描边模式：
+        直接输出描边颜色，不参与光照。
+    */
+    if (renderMode > 0.5) {
+        outColor = fragColor;
+        return;
+    }
+
     vec3 baseColor =
         fragColor.rgb;
 
     vec3 normal =
         normalize(fragWorldNormal);
 
-    /*
-        方向光方向：
-        这里表示光从右上前方照向场景。
-    */
     vec3 lightDir =
         normalize(vec3(-0.4, -1.0, -0.3));
 
-    /*
-        Lambert:
-        表面朝向光源时更亮，背光面更暗。
-
-        注意：
-        lightDir 表示光线传播方向。
-        计算时常用 -lightDir 表示指向光源的方向。
-    */
     float ndotl =
         max(dot(normal, -lightDir), 0.0);
 
-    vec3 ambient =
-        baseColor * 0.25;
+    float shadeSteps =
+        max(fragShadingParams.x, 1.0);
 
-    vec3 diffuse =
-        baseColor * ndotl * 0.85;
+    float shadowStrength =
+        clamp(fragShadingParams.y, 0.0, 1.0);
+
+    float ambient =
+        clamp(fragShadingParams.z, 0.0, 1.0);
+
+    float stepped =
+        floor(ndotl * shadeSteps) /
+        max(shadeSteps - 1.0, 1.0);
+
+    stepped =
+        clamp(stepped, 0.0, 1.0);
+
+    float lightFactor =
+        mix(
+            ambient,
+            1.0,
+            stepped
+        );
+
+    lightFactor =
+        mix(
+            1.0,
+            lightFactor,
+            shadowStrength
+        );
 
     vec3 finalColor =
-        ambient + diffuse;
+        baseColor * lightFactor;
 
     outColor =
         vec4(finalColor, fragColor.a);

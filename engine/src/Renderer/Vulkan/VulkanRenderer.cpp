@@ -226,6 +226,10 @@ namespace Engine {
         return m_Swapchain.GetExtent();
     }
 
+    const PixelRenderConfig& VulkanRenderer::GetPixelRenderConfig() const {
+        return m_PixelConfig;
+    }
+
     void VulkanRenderer::CreatePixelResources() {
         m_OffscreenTarget.Init(
             m_Device.GetPhysicalDevice(),
@@ -234,18 +238,57 @@ namespace Engine {
             m_PixelConfig.internalHeight
         );
 
+        VulkanPipelineConfig meshConfig{};
+        meshConfig.cullMode = VK_CULL_MODE_NONE;
+        meshConfig.depthTestEnable = true;
+        meshConfig.depthWriteEnable = true;
+        meshConfig.depthCompareOp = VK_COMPARE_OP_LESS;
+
         m_MeshPipeline.Init(
             m_Device.GetDevice(),
             m_OffscreenTarget.GetExtent(),
             m_OffscreenTarget.GetRenderPass(),
             m_Descriptor.GetLayout(),
             "assets/shaders/mesh.vert.spv",
-            "assets/shaders/mesh.frag.spv"
+            "assets/shaders/mesh.frag.spv",
+            meshConfig
+        );
+
+        VulkanPipelineConfig outlineConfig{};
+        outlineConfig.cullMode = VK_CULL_MODE_NONE;
+
+        /*
+            简化方案：
+            描边 pass 不读写 depth。
+            先画黑色膨胀模型，再画正常模型。
+            正常模型会覆盖内部，只保留边缘外扩部分。
+
+            优点：
+                稳定，简单，不容易因为 winding order 出错。
+
+            缺点：
+                部分重叠情况下，远处物体的描边可能会透出。
+                后续可以升级为 inverted hull + depth test。
+        */
+        outlineConfig.depthTestEnable = false;
+        outlineConfig.depthWriteEnable = false;
+        outlineConfig.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+
+        m_OutlinePipeline.Init(
+            m_Device.GetDevice(),
+            m_OffscreenTarget.GetExtent(),
+            m_OffscreenTarget.GetRenderPass(),
+            m_Descriptor.GetLayout(),
+            "assets/shaders/mesh.vert.spv",
+            "assets/shaders/mesh.frag.spv",
+            outlineConfig
         );
     }
 
     void VulkanRenderer::CleanupPixelResources() {
         m_MeshPipeline.Shutdown();
+        m_OutlinePipeline.Shutdown();
+
         m_OffscreenTarget.Shutdown();
     }
 
@@ -591,27 +634,11 @@ namespace Engine {
             VK_SUBPASS_CONTENTS_INLINE
         );
 
-        vkCmdBindPipeline(
-            commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_MeshPipeline.GetPipeline()
-        );
-
         VkDescriptorSet descriptorSet =
             m_Descriptor.GetSet();
 
-        vkCmdBindDescriptorSets(
-            commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_MeshPipeline.GetPipelineLayout(),
-            0,
-            1,
-            &descriptorSet,
-            0,
-            nullptr
-        );
-
-        for (const RenderItem& item : scene.GetRenderItems()) {
+        auto drawItem =
+            [&](const RenderItem& item, bool outlineMode) {
             const VulkanMesh* mesh = nullptr;
 
             switch (item.meshType) {
@@ -628,12 +655,17 @@ namespace Engine {
             }
 
             if (!mesh) {
-                continue;
+                return;
             }
+
+            MaterialId materialId =
+                outlineMode
+                ? item.outlineMaterialId
+                : item.materialId;
 
             const Material& material =
                 m_MaterialLibrary.GetMaterial(
-                    item.materialId
+                    materialId
                 );
 
             mesh->Bind(commandBuffer);
@@ -641,10 +673,25 @@ namespace Engine {
             MeshPushConstants push{};
             push.model = item.model;
             push.color = material.baseColor;
+            push.shadingParams = glm::vec4{
+                material.shadeSteps,
+                material.shadowStrength,
+                material.ambient,
+                0.0f
+            };
+
+            push.outlineParams = glm::vec4{
+                outlineMode ? 1.0f : 0.0f,
+                outlineMode ? item.outlineWidth : 0.0f,
+                0.0f,
+                0.0f
+            };
 
             vkCmdPushConstants(
                 commandBuffer,
-                m_MeshPipeline.GetPipelineLayout(),
+                outlineMode
+                ? m_OutlinePipeline.GetPipelineLayout()
+                : m_MeshPipeline.GetPipelineLayout(),
                 VK_SHADER_STAGE_VERTEX_BIT |
                 VK_SHADER_STAGE_FRAGMENT_BIT,
                 0,
@@ -653,6 +700,67 @@ namespace Engine {
             );
 
             mesh->Draw(commandBuffer);
+            };
+
+        /*
+            Pass 1：描边
+        */
+        vkCmdBindPipeline(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_OutlinePipeline.GetPipeline()
+        );
+
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_OutlinePipeline.GetPipelineLayout(),
+            0,
+            1,
+            &descriptorSet,
+            0,
+            nullptr
+        );
+
+        for (const RenderItem& item : scene.GetRenderItems()) {
+            if (!HasRenderFlag(
+                item.flags,
+                RenderFlags::Outline
+            )) {
+                continue;
+            }
+
+            drawItem(
+                item,
+                true
+            );
+        }
+
+        /*
+            Pass 2：正常物体
+        */
+        vkCmdBindPipeline(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_MeshPipeline.GetPipeline()
+        );
+
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_MeshPipeline.GetPipelineLayout(),
+            0,
+            1,
+            &descriptorSet,
+            0,
+            nullptr
+        );
+
+        for (const RenderItem& item : scene.GetRenderItems()) {
+            drawItem(
+                item,
+                false
+            );
         }
 
         vkCmdEndRenderPass(commandBuffer);
@@ -690,7 +798,10 @@ namespace Engine {
         );
 
         m_FullscreenPass.Record(
-            commandBuffer
+            commandBuffer,
+            m_OffscreenTarget.GetExtent(),
+            m_Swapchain.GetExtent(),
+            m_PixelConfig
         );
 
         vkCmdEndRenderPass(commandBuffer);

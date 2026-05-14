@@ -94,7 +94,9 @@ namespace Engine {
             nullptr,
             &m_DescriptorSetLayout
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create fullscreen descriptor set layout");
+            throw std::runtime_error(
+                "Failed to create fullscreen descriptor set layout"
+            );
         }
     }
 
@@ -117,7 +119,9 @@ namespace Engine {
             nullptr,
             &m_DescriptorPool
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create fullscreen descriptor pool");
+            throw std::runtime_error(
+                "Failed to create fullscreen descriptor pool"
+            );
         }
     }
 
@@ -137,7 +141,9 @@ namespace Engine {
             &allocInfo,
             &m_DescriptorSet
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate fullscreen descriptor set");
+            throw std::runtime_error(
+                "Failed to allocate fullscreen descriptor set"
+            );
         }
 
         VkDescriptorImageInfo imageInfo{};
@@ -147,7 +153,8 @@ namespace Engine {
         imageInfo.sampler = sourceSampler;
 
         VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.sType =
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet = m_DescriptorSet;
         write.dstBinding = 0;
         write.dstArrayElement = 0;
@@ -225,6 +232,10 @@ namespace Engine {
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+        /*
+            这里给一个默认 viewport/scissor。
+            真正的 viewport/scissor 在 Record() 里动态设置。
+        */
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -236,7 +247,10 @@ namespace Engine {
         viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
+        scissor.offset = {
+            0,
+            0
+        };
         scissor.extent = extent;
 
         VkPipelineViewportStateCreateInfo viewportState{};
@@ -252,10 +266,13 @@ namespace Engine {
             VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.polygonMode =
+            VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.cullMode =
+            VK_CULL_MODE_NONE;
+        rasterizer.frontFace =
+            VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
         VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -278,13 +295,26 @@ namespace Engine {
             VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.pAttachments =
+            &colorBlendAttachment;
+
+        VkDynamicState dynamicStates[] = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = 2;
+        dynamicState.pDynamicStates = dynamicStates;
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType =
             VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
+        pipelineLayoutInfo.pSetLayouts =
+            &m_DescriptorSetLayout;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         if (vkCreatePipelineLayout(
@@ -293,7 +323,9 @@ namespace Engine {
             nullptr,
             &m_PipelineLayout
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create fullscreen pipeline layout");
+            throw std::runtime_error(
+                "Failed to create fullscreen pipeline layout"
+            );
         }
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -309,6 +341,7 @@ namespace Engine {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = nullptr;
         pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
 
         pipelineInfo.layout = m_PipelineLayout;
         pipelineInfo.renderPass = renderPass;
@@ -322,7 +355,9 @@ namespace Engine {
             nullptr,
             &m_Pipeline
         ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create fullscreen pipeline");
+            throw std::runtime_error(
+                "Failed to create fullscreen pipeline"
+            );
         }
 
         vkDestroyShaderModule(
@@ -339,8 +374,60 @@ namespace Engine {
     }
 
     void VulkanFullscreenPass::Record(
-        VkCommandBuffer commandBuffer
+        VkCommandBuffer commandBuffer,
+        VkExtent2D sourceExtent,
+        VkExtent2D targetExtent,
+        const PixelRenderConfig& config
     ) {
+        PixelViewport pixelViewport =
+            CalculatePixelViewport(
+                config,
+                targetExtent.width,
+                targetExtent.height
+            );
+
+        if (pixelViewport.width == 0 ||
+            pixelViewport.height == 0) {
+            return;
+        }
+
+        VkViewport viewport{};
+        viewport.x =
+            static_cast<float>(pixelViewport.x);
+        viewport.y =
+            static_cast<float>(pixelViewport.y);
+        viewport.width =
+            static_cast<float>(pixelViewport.width);
+        viewport.height =
+            static_cast<float>(pixelViewport.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = {
+            pixelViewport.x,
+            pixelViewport.y
+        };
+
+        scissor.extent = {
+            pixelViewport.width,
+            pixelViewport.height
+        };
+
+        vkCmdSetViewport(
+            commandBuffer,
+            0,
+            1,
+            &viewport
+        );
+
+        vkCmdSetScissor(
+            commandBuffer,
+            0,
+            1,
+            &scissor
+        );
+
         vkCmdBindPipeline(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,

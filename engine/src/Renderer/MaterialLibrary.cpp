@@ -11,11 +11,17 @@ namespace Engine {
             1.0f,
             1.0f
         };
+        m_FallbackMaterial.shadeSteps = 3.0f;
+        m_FallbackMaterial.shadowStrength = 0.5f;
+        m_FallbackMaterial.ambient = 0.35f;
 
         RegisterMaterial({
             MaterialId::BoardDark,
             "BoardDark",
             glm::vec4{0.18f, 0.24f, 0.32f, 1.0f},
+            2.0f,
+            0.35f,
+            0.50f,
             0.0f,
             0.5f
             });
@@ -24,6 +30,9 @@ namespace Engine {
             MaterialId::BoardLight,
             "BoardLight",
             glm::vec4{0.24f, 0.32f, 0.42f, 1.0f},
+            2.0f,
+            0.35f,
+            0.50f,
             0.0f,
             0.5f
             });
@@ -32,6 +41,9 @@ namespace Engine {
             MaterialId::BoardHighlight,
             "BoardHighlight",
             glm::vec4{0.95f, 0.75f, 0.20f, 1.0f},
+            2.0f,
+            0.25f,
+            0.55f,
             0.0f,
             0.35f
             });
@@ -40,6 +52,9 @@ namespace Engine {
             MaterialId::UnitBlue,
             "UnitBlue",
             glm::vec4{0.25f, 0.55f, 1.0f, 1.0f},
+            3.0f,
+            0.55f,
+            0.30f,
             0.0f,
             0.4f
             });
@@ -48,6 +63,9 @@ namespace Engine {
             MaterialId::UnitRed,
             "UnitRed",
             glm::vec4{1.0f, 0.25f, 0.25f, 1.0f},
+            3.0f,
+            0.55f,
+            0.30f,
             0.0f,
             0.4f
             });
@@ -56,6 +74,9 @@ namespace Engine {
             MaterialId::UnitGreen,
             "UnitGreen",
             glm::vec4{0.45f, 1.0f, 0.45f, 1.0f},
+            3.0f,
+            0.55f,
+            0.30f,
             0.0f,
             0.4f
             });
@@ -64,8 +85,22 @@ namespace Engine {
             MaterialId::UnitSelected,
             "UnitSelected",
             glm::vec4{1.0f, 0.95f, 0.35f, 1.0f},
+            3.0f,
+            0.35f,
+            0.40f,
             0.0f,
             0.25f
+            });
+
+        RegisterMaterial({
+            MaterialId::OutlineDark,
+            "OutlineDark",
+            glm::vec4{0.035f, 0.035f, 0.05f, 1.0f},
+            1.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            0.5f
             });
 
         RegisterMaterial(m_FallbackMaterial);

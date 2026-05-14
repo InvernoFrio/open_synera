@@ -5,6 +5,7 @@
 
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Camera.h"
+#include "Engine/Renderer/PixelRenderConfig.h"
 #include "Engine/Scene/Scene.h"
 
 #include <cstdint>
@@ -12,20 +13,14 @@
 class AutoChessGame {
 public:
     void Init(
-        uint32_t width,
-        uint32_t height
+        const Engine::PixelRenderConfig& pixelConfig
     );
 
     void Update(
         float dt,
         const Engine::Input& input,
-        uint32_t screenWidth,
-        uint32_t screenHeight
-    );
-
-    void Resize(
-        uint32_t width,
-        uint32_t height
+        uint32_t framebufferWidth,
+        uint32_t framebufferHeight
     );
 
     Engine::Camera& GetCamera();
@@ -35,13 +30,15 @@ public:
 private:
     void HandleMouseInput(
         const Engine::Input& input,
-        uint32_t screenWidth,
-        uint32_t screenHeight
+        uint32_t framebufferWidth,
+        uint32_t framebufferHeight
     );
 
     void BuildScene();
 
 private:
+    Engine::PixelRenderConfig m_PixelConfig;
+
     BoardSystem m_BoardSystem;
     UnitSystem m_UnitSystem;
 
