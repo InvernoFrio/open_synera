@@ -1,0 +1,61 @@
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Build Directories
+build/
+out/
+bin/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# MSVC / Visual Studio
+.vs/
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.sln.userprefs
+*.vcxproj.user
+# *.vcxproj.filters # Note: filters are sometimes version controlled, uncomment if you want to ignore
+*.pdb
+*.ilk
+*.idb
+
+# VS Code
+.vscode/
+
+# Compiled Shaders (Optional: generated at build time)
+# assets/shaders/*.spv
