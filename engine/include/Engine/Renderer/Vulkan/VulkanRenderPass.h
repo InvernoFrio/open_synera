@@ -6,10 +6,16 @@ namespace Engine {
 
     class VulkanRenderPass {
     public:
-        void Init(
+        void InitColorDepth(
             VkDevice device,
             VkFormat colorFormat,
-            VkFormat depthFormat
+            VkFormat depthFormat,
+            VkImageLayout colorFinalLayout
+        );
+
+        void InitPresent(
+            VkDevice device,
+            VkFormat colorFormat
         );
 
         void Shutdown();

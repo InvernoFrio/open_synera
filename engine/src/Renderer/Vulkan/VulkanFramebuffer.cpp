@@ -5,11 +5,10 @@
 
 namespace Engine {
 
-    void VulkanFramebuffer::Init(
+    void VulkanFramebuffer::InitSwapchainColorOnly(
         VkDevice device,
         VkRenderPass renderPass,
         const std::vector<VkImageView>& swapchainImageViews,
-        VkImageView depthImageView,
         VkExtent2D extent
     ) {
         m_Device = device;
@@ -19,16 +18,15 @@ namespace Engine {
         );
 
         for (size_t i = 0; i < swapchainImageViews.size(); i++) {
-            std::array<VkImageView, 2> attachments = {
-                swapchainImageViews[i],
-                depthImageView
+            VkImageView attachments[] = {
+                swapchainImageViews[i]
             };
 
             VkFramebufferCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             createInfo.renderPass = renderPass;
-            createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            createInfo.pAttachments = attachments.data();
+            createInfo.attachmentCount = 1;
+            createInfo.pAttachments = attachments;
             createInfo.width = extent.width;
             createInfo.height = extent.height;
             createInfo.layers = 1;
@@ -39,8 +37,43 @@ namespace Engine {
                 nullptr,
                 &m_Framebuffers[i]
             ) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create framebuffer");
+                throw std::runtime_error("Failed to create swapchain framebuffer");
             }
+        }
+    }
+
+    void VulkanFramebuffer::InitSingleColorDepth(
+        VkDevice device,
+        VkRenderPass renderPass,
+        VkImageView colorImageView,
+        VkImageView depthImageView,
+        VkExtent2D extent
+    ) {
+        m_Device = device;
+
+        std::array<VkImageView, 2> attachments = {
+            colorImageView,
+            depthImageView
+        };
+
+        m_Framebuffers.resize(1);
+
+        VkFramebufferCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        createInfo.renderPass = renderPass;
+        createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        createInfo.pAttachments = attachments.data();
+        createInfo.width = extent.width;
+        createInfo.height = extent.height;
+        createInfo.layers = 1;
+
+        if (vkCreateFramebuffer(
+            m_Device,
+            &createInfo,
+            nullptr,
+            &m_Framebuffers[0]
+        ) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create offscreen framebuffer");
         }
     }
 
@@ -58,6 +91,12 @@ namespace Engine {
 
     const std::vector<VkFramebuffer>& VulkanFramebuffer::GetFramebuffers() const {
         return m_Framebuffers;
+    }
+
+    VkFramebuffer VulkanFramebuffer::GetSingleFramebuffer() const {
+        return m_Framebuffers.empty()
+            ? VK_NULL_HANDLE
+            : m_Framebuffers[0];
     }
 
 }

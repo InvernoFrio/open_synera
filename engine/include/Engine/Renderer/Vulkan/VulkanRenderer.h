@@ -5,6 +5,7 @@
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/MaterialLibrary.h"
+#include "Engine/Renderer/PixelRenderConfig.h"
 #include "Engine/Scene/Scene.h"
 
 #include "Engine/Renderer/Vulkan/VulkanContext.h"
@@ -17,6 +18,8 @@
 #include "Engine/Renderer/Vulkan/VulkanMesh.h"
 #include "Engine/Renderer/Vulkan/VulkanDescriptor.h"
 #include "Engine/Renderer/Vulkan/VulkanImage.h"
+#include "Engine/Renderer/Vulkan/VulkanOffscreenRenderTarget.h"
+#include "Engine/Renderer/Vulkan/VulkanFullscreenPass.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
@@ -54,6 +57,9 @@ namespace Engine {
         void CreateSwapchainResources(Window& window);
         void CleanupSwapchainResources();
 
+        void CreatePixelResources();
+        void CleanupPixelResources();
+
         void RecreateSwapchain(Window& window);
 
         void CreateCommandPool();
@@ -65,7 +71,6 @@ namespace Engine {
 
         void CreateCameraBuffer();
         void CreateMeshes();
-        void CreateDepthResources();
 
         void UpdateCameraBuffer(const Camera& camera);
 
@@ -75,20 +80,34 @@ namespace Engine {
             const Scene& scene
         );
 
+        void RecordScenePass(
+            VkCommandBuffer commandBuffer,
+            const Scene& scene
+        );
+
+        void RecordPresentPass(
+            VkCommandBuffer commandBuffer,
+            uint32_t imageIndex
+        );
+
     private:
+        PixelRenderConfig m_PixelConfig;
+
         VulkanContext m_Context;
         VulkanDevice m_Device;
 
         VulkanSwapchain m_Swapchain;
-        VulkanImage m_DepthImage;
 
-        VulkanRenderPass m_RenderPass;
-        VulkanFramebuffer m_Framebuffer;
+        VulkanOffscreenRenderTarget m_OffscreenTarget;
+
+        VulkanRenderPass m_PresentRenderPass;
+        VulkanFramebuffer m_PresentFramebuffer;
 
         VulkanBuffer m_CameraBuffer;
         VulkanDescriptor m_Descriptor;
 
         VulkanPipeline m_MeshPipeline;
+        VulkanFullscreenPass m_FullscreenPass;
 
         VulkanMesh m_BoardTileMesh;
         VulkanMesh m_UnitCubeMesh;

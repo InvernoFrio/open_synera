@@ -36,6 +36,7 @@ namespace Engine {
 
         m_MaterialLibrary.InitDefaultMaterials();
 
+        CreatePixelResources();
         CreateSwapchainResources(window);
 
         CreateCommandBuffers();
@@ -45,17 +46,18 @@ namespace Engine {
     }
 
     void VulkanRenderer::Shutdown() {
-        VkDevice device = m_Device.GetDevice();
+        VkDevice device =
+            m_Device.GetDevice();
 
         if (device != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(device);
         }
 
         DestroySyncObjects();
-
         FreeCommandBuffers();
 
         CleanupSwapchainResources();
+        CleanupPixelResources();
 
         if (device != VK_NULL_HANDLE) {
             m_UnitCubeMesh.Shutdown();
@@ -110,14 +112,15 @@ namespace Engine {
 
         uint32_t imageIndex = 0;
 
-        VkResult acquireResult = vkAcquireNextImageKHR(
-            device,
-            m_Swapchain.GetSwapchain(),
-            UINT64_MAX,
-            m_ImageAvailableSemaphores[m_CurrentFrame],
-            VK_NULL_HANDLE,
-            &imageIndex
-        );
+        VkResult acquireResult =
+            vkAcquireNextImageKHR(
+                device,
+                m_Swapchain.GetSwapchain(),
+                UINT64_MAX,
+                m_ImageAvailableSemaphores[m_CurrentFrame],
+                VK_NULL_HANDLE,
+                &imageIndex
+            );
 
         if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
             RecreateSwapchain(window);
@@ -171,7 +174,8 @@ namespace Engine {
             &m_CommandBuffers[imageIndex];
 
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+        submitInfo.pSignalSemaphores =
+            signalSemaphores;
 
         if (vkQueueSubmit(
             m_Device.GetGraphicsQueue(),
@@ -189,19 +193,18 @@ namespace Engine {
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType =
             VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
-
+        presentInfo.pWaitSemaphores =
+            signalSemaphores;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapchains;
-
         presentInfo.pImageIndices = &imageIndex;
 
-        VkResult presentResult = vkQueuePresentKHR(
-            m_Device.GetPresentQueue(),
-            &presentInfo
-        );
+        VkResult presentResult =
+            vkQueuePresentKHR(
+                m_Device.GetPresentQueue(),
+                &presentInfo
+            );
 
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
             presentResult == VK_SUBOPTIMAL_KHR ||
@@ -223,6 +226,29 @@ namespace Engine {
         return m_Swapchain.GetExtent();
     }
 
+    void VulkanRenderer::CreatePixelResources() {
+        m_OffscreenTarget.Init(
+            m_Device.GetPhysicalDevice(),
+            m_Device.GetDevice(),
+            m_PixelConfig.internalWidth,
+            m_PixelConfig.internalHeight
+        );
+
+        m_MeshPipeline.Init(
+            m_Device.GetDevice(),
+            m_OffscreenTarget.GetExtent(),
+            m_OffscreenTarget.GetRenderPass(),
+            m_Descriptor.GetLayout(),
+            "assets/shaders/mesh.vert.spv",
+            "assets/shaders/mesh.frag.spv"
+        );
+    }
+
+    void VulkanRenderer::CleanupPixelResources() {
+        m_MeshPipeline.Shutdown();
+        m_OffscreenTarget.Shutdown();
+    }
+
     void VulkanRenderer::CreateSwapchainResources(Window& window) {
         QueueFamilyIndices queueFamilyIndices =
             m_Device.FindQueueFamilies(
@@ -238,29 +264,24 @@ namespace Engine {
             queueFamilyIndices
         );
 
-        CreateDepthResources();
-
-        m_RenderPass.Init(
+        m_PresentRenderPass.InitPresent(
             m_Device.GetDevice(),
-            m_Swapchain.GetImageFormat(),
-            m_DepthImage.GetFormat()
+            m_Swapchain.GetImageFormat()
         );
 
-        m_Framebuffer.Init(
+        m_PresentFramebuffer.InitSwapchainColorOnly(
             m_Device.GetDevice(),
-            m_RenderPass.Get(),
+            m_PresentRenderPass.Get(),
             m_Swapchain.GetImageViews(),
-            m_DepthImage.GetImageView(),
             m_Swapchain.GetExtent()
         );
 
-        m_MeshPipeline.Init(
+        m_FullscreenPass.Init(
             m_Device.GetDevice(),
             m_Swapchain.GetExtent(),
-            m_RenderPass.Get(),
-            m_Descriptor.GetLayout(),
-            "assets/shaders/mesh.vert.spv",
-            "assets/shaders/mesh.frag.spv"
+            m_PresentRenderPass.Get(),
+            m_OffscreenTarget.GetColorImageView(),
+            m_OffscreenTarget.GetColorSampler()
         );
     }
 
@@ -272,12 +293,10 @@ namespace Engine {
             vkDeviceWaitIdle(device);
         }
 
-        m_MeshPipeline.Shutdown();
+        m_FullscreenPass.Shutdown();
 
-        m_Framebuffer.Shutdown();
-        m_RenderPass.Shutdown();
-
-        m_DepthImage.Shutdown();
+        m_PresentFramebuffer.Shutdown();
+        m_PresentRenderPass.Shutdown();
 
         m_Swapchain.Shutdown();
     }
@@ -299,18 +318,6 @@ namespace Engine {
         CreateSwapchainResources(window);
 
         CreateCommandBuffers();
-    }
-
-    void VulkanRenderer::CreateDepthResources() {
-        VkExtent2D extent =
-            m_Swapchain.GetExtent();
-
-        m_DepthImage.InitDepthImage(
-            m_Device.GetPhysicalDevice(),
-            m_Device.GetDevice(),
-            extent.width,
-            extent.height
-        );
     }
 
     void VulkanRenderer::CreateCameraBuffer() {
@@ -353,10 +360,8 @@ namespace Engine {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType =
             VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-
         poolInfo.flags =
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
         poolInfo.queueFamilyIndex =
             queueFamilyIndices.graphicsFamily.value();
 
@@ -378,11 +383,9 @@ namespace Engine {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType =
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-
         allocInfo.commandPool = m_CommandPool;
         allocInfo.level =
             VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
         allocInfo.commandBufferCount =
             static_cast<uint32_t>(m_CommandBuffers.size());
 
@@ -397,11 +400,6 @@ namespace Engine {
 
     void VulkanRenderer::FreeCommandBuffers() {
         if (m_CommandBuffers.empty()) {
-            return;
-        }
-
-        if (m_CommandPool == VK_NULL_HANDLE) {
-            m_CommandBuffers.clear();
             return;
         }
 
@@ -438,7 +436,6 @@ namespace Engine {
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType =
             VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
         fenceInfo.flags =
             VK_FENCE_CREATE_SIGNALED_BIT;
 
@@ -538,6 +535,27 @@ namespace Engine {
             throw std::runtime_error("Failed to begin command buffer");
         }
 
+        RecordScenePass(
+            commandBuffer,
+            scene
+        );
+
+        RecordPresentPass(
+            commandBuffer,
+            imageIndex
+        );
+
+        if (vkEndCommandBuffer(
+            commandBuffer
+        ) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffer");
+        }
+    }
+
+    void VulkanRenderer::RecordScenePass(
+        VkCommandBuffer commandBuffer,
+        const Scene& scene
+    ) {
         std::array<VkClearValue, 2> clearValues{};
 
         clearValues[0].color = {
@@ -552,24 +570,18 @@ namespace Engine {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType =
             VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
         renderPassInfo.renderPass =
-            m_RenderPass.Get();
-
+            m_OffscreenTarget.GetRenderPass();
         renderPassInfo.framebuffer =
-            m_Framebuffer.GetFramebuffers()[imageIndex];
-
+            m_OffscreenTarget.GetFramebuffer();
         renderPassInfo.renderArea.offset = {
             0,
             0
         };
-
         renderPassInfo.renderArea.extent =
-            m_Swapchain.GetExtent();
-
+            m_OffscreenTarget.GetExtent();
         renderPassInfo.clearValueCount =
             static_cast<uint32_t>(clearValues.size());
-
         renderPassInfo.pClearValues =
             clearValues.data();
 
@@ -644,12 +656,44 @@ namespace Engine {
         }
 
         vkCmdEndRenderPass(commandBuffer);
+    }
 
-        if (vkEndCommandBuffer(
+    void VulkanRenderer::RecordPresentPass(
+        VkCommandBuffer commandBuffer,
+        uint32_t imageIndex
+    ) {
+        VkClearValue clearColor{};
+        clearColor.color = {
+            { 0.0f, 0.0f, 0.0f, 1.0f }
+        };
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType =
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass =
+            m_PresentRenderPass.Get();
+        renderPassInfo.framebuffer =
+            m_PresentFramebuffer.GetFramebuffers()[imageIndex];
+        renderPassInfo.renderArea.offset = {
+            0,
+            0
+        };
+        renderPassInfo.renderArea.extent =
+            m_Swapchain.GetExtent();
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(
+            commandBuffer,
+            &renderPassInfo,
+            VK_SUBPASS_CONTENTS_INLINE
+        );
+
+        m_FullscreenPass.Record(
             commandBuffer
-        ) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to record command buffer");
-        }
+        );
+
+        vkCmdEndRenderPass(commandBuffer);
     }
 
 }
