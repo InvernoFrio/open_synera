@@ -12,7 +12,13 @@ namespace Engine {
 
         BoardDark,
         BoardLight,
-        BoardHighlight,
+
+        BoardHover,
+        BoardSelected,
+        BoardMoveTarget,
+        BoardAttackRange,
+        BoardSkillRange,
+        BoardInvalid,
 
         UnitBlue,
         UnitRed,

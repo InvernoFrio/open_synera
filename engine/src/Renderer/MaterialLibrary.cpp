@@ -38,12 +38,67 @@ namespace Engine {
             });
 
         RegisterMaterial({
-            MaterialId::BoardHighlight,
-            "BoardHighlight",
+            MaterialId::BoardHover,
+            "BoardHover",
             glm::vec4{0.95f, 0.75f, 0.20f, 1.0f},
             2.0f,
             0.25f,
             0.55f,
+            0.0f,
+            0.35f
+            });
+
+        RegisterMaterial({
+            MaterialId::BoardSelected,
+            "BoardSelected",
+            glm::vec4{1.0f, 0.90f, 0.35f, 1.0f},
+            2.0f,
+            0.20f,
+            0.60f,
+            0.0f,
+            0.35f
+            });
+
+        RegisterMaterial({
+            MaterialId::BoardMoveTarget,
+            "BoardMoveTarget",
+            glm::vec4{0.25f, 0.95f, 0.45f, 1.0f},
+            2.0f,
+            0.25f,
+            0.55f,
+            0.0f,
+            0.35f
+            });
+
+        RegisterMaterial({
+            MaterialId::BoardAttackRange,
+            "BoardAttackRange",
+            glm::vec4{1.0f, 0.35f, 0.28f, 1.0f},
+            2.0f,
+            0.25f,
+            0.55f,
+            0.0f,
+            0.35f
+            });
+
+        RegisterMaterial({
+            MaterialId::BoardSkillRange,
+            "BoardSkillRange",
+            glm::vec4{0.35f, 0.65f, 1.0f, 1.0f},
+            2.0f,
+            0.25f,
+            0.55f,
+            0.0f,
+            0.35f
+            });
+
+        RegisterMaterial({
+            MaterialId::BoardInvalid,
+            "BoardInvalid",
+            glm::vec4{0.75f, 0.15f, 0.18f, 1.0f},
+            2.0f,
+            0.35f,
+            0.45f,
             0.0f,
             0.35f
             });

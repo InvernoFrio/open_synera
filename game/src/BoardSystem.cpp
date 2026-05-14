@@ -18,7 +18,8 @@ void BoardSystem::Update() {
 }
 
 void BoardSystem::SubmitRenderItems(
-    Engine::Scene& scene
+    Engine::Scene& scene,
+    const BoardVisualLayer& visualLayer
 ) const {
     for (int row = 0; row < m_Rows; row++) {
         for (int col = 0; col < m_Cols; col++) {
@@ -44,25 +45,15 @@ void BoardSystem::SubmitRenderItems(
                 }
             );
 
-            bool isHighlighted =
-                m_HighlightedCell.x == row &&
-                m_HighlightedCell.y == col;
-
             bool dark =
                 ((row + col) % 2) == 0;
 
             Engine::MaterialId materialId =
-                Engine::MaterialId::BoardDark;
-
-            if (isHighlighted) {
-                materialId =
-                    Engine::MaterialId::BoardHighlight;
-            }
-            else {
-                materialId = dark
-                    ? Engine::MaterialId::BoardDark
-                    : Engine::MaterialId::BoardLight;
-            }
+                visualLayer.GetMaterialForCell(
+                    row,
+                    col,
+                    dark
+                );
 
             Engine::RenderItem item;
             item.meshType = Engine::MeshType::Quad;
@@ -72,27 +63,6 @@ void BoardSystem::SubmitRenderItems(
             scene.Submit(item);
         }
     }
-}
-
-void BoardSystem::HighlightCell(
-    int row,
-    int col
-) {
-    if (!IsValidCell(row, col)) {
-        return;
-    }
-
-    m_HighlightedCell = {
-        row,
-        col
-    };
-}
-
-void BoardSystem::ClearHighlight() {
-    m_HighlightedCell = {
-        -1,
-        -1
-    };
 }
 
 std::optional<glm::ivec2> BoardSystem::RaycastCell(

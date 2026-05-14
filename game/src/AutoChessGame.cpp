@@ -44,14 +44,6 @@ void AutoChessGame::Init(
         1.0f
     );
 
-    /*
-        关键修复：
-        Camera aspect 必须使用内部像素渲染分辨率，
-        而不是窗口 framebuffer 分辨率。
-
-        因为真正的 3D scene 是渲染到 offscreen 426x240，
-        最后才 letterbox 放大到窗口。
-    */
     float aspect =
         Engine::GetPixelInternalAspect(
             m_PixelConfig
@@ -68,6 +60,10 @@ void AutoChessGame::Init(
         glm::vec3{ 0.0f, 9.5f, 9.5f },
         glm::vec3{ 0.0f, 0.0f, 0.0f },
         glm::vec3{ 0.0f, 1.0f, 0.0f }
+    );
+
+    UpdateBoardVisuals(
+        std::nullopt
     );
 
     BuildScene();
@@ -98,6 +94,10 @@ void AutoChessGame::HandleMouseInput(
 ) {
     if (framebufferWidth == 0 ||
         framebufferHeight == 0) {
+        UpdateBoardVisuals(
+            std::nullopt
+        );
+
         return;
     }
 
@@ -109,7 +109,10 @@ void AutoChessGame::HandleMouseInput(
         );
 
     if (!viewport.IsValid()) {
-        m_BoardSystem.ClearHighlight();
+        UpdateBoardVisuals(
+            std::nullopt
+        );
+
         return;
     }
 
@@ -122,11 +125,18 @@ void AutoChessGame::HandleMouseInput(
     bool insidePixelViewport =
         mouseX >= static_cast<double>(viewport.x) &&
         mouseY >= static_cast<double>(viewport.y) &&
-        mouseX < static_cast<double>(viewport.x + static_cast<int32_t>(viewport.width)) &&
-        mouseY < static_cast<double>(viewport.y + static_cast<int32_t>(viewport.height));
+        mouseX < static_cast<double>(
+            viewport.x + static_cast<int32_t>(viewport.width)
+            ) &&
+        mouseY < static_cast<double>(
+            viewport.y + static_cast<int32_t>(viewport.height)
+            );
 
     if (!insidePixelViewport) {
-        m_BoardSystem.ClearHighlight();
+        UpdateBoardVisuals(
+            std::nullopt
+        );
+
         return;
     }
 
@@ -136,14 +146,6 @@ void AutoChessGame::HandleMouseInput(
     double localMouseY =
         mouseY - static_cast<double>(viewport.y);
 
-    /*
-        注意：
-        这里用 viewport.width / viewport.height 是正确的。
-        因为鼠标是在最终显示区域内定位的。
-
-        camera aspect 使用的是内部 426/240。
-        viewport 的宽高也保持同样比例。
-    */
     Engine::Ray ray =
         Engine::ScreenPointToRay(
             m_Camera,
@@ -156,14 +158,11 @@ void AutoChessGame::HandleMouseInput(
     auto hitCell =
         m_BoardSystem.RaycastCell(ray);
 
-    if (hitCell.has_value()) {
-        m_BoardSystem.HighlightCell(
-            hitCell->x,
-            hitCell->y
-        );
-    }
-    else {
-        m_BoardSystem.ClearHighlight();
+    UpdateBoardVisuals(
+        hitCell
+    );
+
+    if (!hitCell.has_value()) {
         return;
     }
 
@@ -190,11 +189,92 @@ void AutoChessGame::HandleMouseInput(
     }
 }
 
+void AutoChessGame::UpdateBoardVisuals(
+    std::optional<glm::ivec2> hoverCell
+) {
+    /*
+        这一层现在只是图形演示。
+        之后你写对局逻辑时，可以把下面这些范围替换成真实数据：
+            - 可移动格子
+            - 攻击范围
+            - 技能范围
+            - 不可放置格子
+    */
+
+    m_BoardVisualLayer.Clear();
+
+    if (hoverCell.has_value()) {
+        m_BoardVisualLayer.SetHoverCell(
+            hoverCell
+        );
+    }
+
+    auto selectedCell =
+        m_UnitSystem.GetSelectedUnitCell();
+
+    if (selectedCell.has_value()) {
+        m_BoardVisualLayer.SetSelectedCell(
+            selectedCell
+        );
+    }
+
+    /*
+        示例：固定展示几个不同类型的视觉格子。
+        后续接你的逻辑时，可以删掉这些 demo。
+    */
+    m_BoardVisualLayer.AddHighlight(
+        { 0, 0 },
+        BoardHighlightType::MoveTarget
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 0, 1 },
+        BoardHighlightType::MoveTarget
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 1, 0 },
+        BoardHighlightType::MoveTarget
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 2, 4 },
+        BoardHighlightType::AttackRange
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 2, 5 },
+        BoardHighlightType::AttackRange
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 3, 5 },
+        BoardHighlightType::SkillRange
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 4, 5 },
+        BoardHighlightType::SkillRange
+    );
+
+    m_BoardVisualLayer.AddHighlight(
+        { 7, 7 },
+        BoardHighlightType::Invalid
+    );
+
+    /*
+        选中格演示。
+        当前 UnitSystem 暂时没有暴露 selected unit cell，
+        后续可以加 GetSelectedUnitCell() 来同步真实选中格。
+    */
+}
+
 void AutoChessGame::BuildScene() {
     m_Scene.Clear();
 
     m_BoardSystem.SubmitRenderItems(
-        m_Scene
+        m_Scene,
+        m_BoardVisualLayer
     );
 
     m_UnitSystem.SubmitRenderItems(

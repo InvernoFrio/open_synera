@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BoardVisualLayer.h"
+
 #include "Engine/Math/Ray.h"
 #include "Engine/Scene/Scene.h"
 
@@ -18,15 +20,9 @@ public:
     void Update();
 
     void SubmitRenderItems(
-        Engine::Scene& scene
+        Engine::Scene& scene,
+        const BoardVisualLayer& visualLayer
     ) const;
-
-    void HighlightCell(
-        int row,
-        int col
-    );
-
-    void ClearHighlight();
 
     std::optional<glm::ivec2> RaycastCell(
         const Engine::Ray& ray
@@ -50,6 +46,4 @@ private:
     int m_Rows = 0;
     int m_Cols = 0;
     float m_CellSize = 1.0f;
-
-    glm::ivec2 m_HighlightedCell{ -1, -1 };
 };

@@ -143,6 +143,21 @@ uint32_t UnitSystem::GetSelectedUnit() const {
     return m_SelectedUnit;
 }
 
+std::optional<glm::ivec2> UnitSystem::GetSelectedUnitCell() const {
+    if (!HasSelection()) {
+        return std::nullopt;
+    }
+
+    const Unit* unit =
+        FindUnit(m_SelectedUnit);
+
+    if (!unit) {
+        return std::nullopt;
+    }
+
+    return unit->cell;
+}
+
 void UnitSystem::MoveSelectedUnitToCell(
     glm::ivec2 cell
 ) {

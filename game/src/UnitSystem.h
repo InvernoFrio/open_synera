@@ -53,6 +53,7 @@ public:
 
     bool HasSelection() const;
     uint32_t GetSelectedUnit() const;
+    std::optional<glm::ivec2> GetSelectedUnitCell() const;
 
     void MoveSelectedUnitToCell(
         glm::ivec2 cell
